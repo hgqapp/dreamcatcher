@@ -59,6 +59,7 @@ public class NodeFetcher {
 
     private void generateEmail() {
         this.email = "node" + System.currentTimeMillis() + "@qq.com";
+        logger.info("Email: {}", email);
     }
 
     public synchronized List<String> fetch() throws Exception {
