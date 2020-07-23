@@ -12,6 +12,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
@@ -56,7 +57,8 @@ public class NodeFetcher {
         Unirest.setDefaultHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36");
     }
 
-    private void generateEmail() {
+    @Scheduled(fixedDelay = 21000L, initialDelay = 21000L)
+    public synchronized void generateEmail() {
         this.email = "node" + System.currentTimeMillis() + "@qq.com";
         logger.info("Generate Email: {}", email);
     }
@@ -70,8 +72,11 @@ public class NodeFetcher {
         return getNodeList();
     }
 
-    public synchronized String subscribe(String type) throws Exception {
+    public synchronized String subscribe(String type, boolean refresh) throws Exception {
         logger.info("Subscribe Operation");
+        if (refresh) {
+            generateEmail();
+        }
         fetch();
         String t = type.toUpperCase();
         String typeKey = TYPE.get(t);

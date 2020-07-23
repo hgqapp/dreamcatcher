@@ -33,8 +33,8 @@ public class IndexController {
 
     @ResponseBody
     @RequestMapping("/subscribe")
-    String subscribe(@RequestParam(defaultValue = "VMESS") String type) throws Exception {
-        return nodeFetcher.subscribe(type);
+    String subscribe(@RequestParam(defaultValue = "VMESS") String type, @RequestParam(defaultValue = "false") boolean refresh) throws Exception {
+        return nodeFetcher.subscribe(type, refresh);
     }
 
 
