@@ -57,7 +57,7 @@ public class NodeFetcher {
         Unirest.setDefaultHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36");
     }
 
-    @Scheduled(fixedDelay = 21000L, initialDelay = 21000L)
+    @Scheduled(fixedDelay = 21590000L, initialDelay = 21590000L)
     public synchronized void generateEmail() {
         this.email = "node" + System.currentTimeMillis() + "@qq.com";
         logger.info("Generate Email: {}", email);
@@ -84,6 +84,10 @@ public class NodeFetcher {
             throw new IllegalArgumentException("Not support type: " + type);
         }
         String subscribeLink = getSubscribeLink(typeKey);
+        if (subscribeLink.isEmpty()) {
+            logger.error("Subscribe Operation Failed");
+            throw new IllegalArgumentException("获取订约链接失败");
+        }
         if (!"QT5".equals(t)) {
             subscribeLink += ("?net_type=" + t);
         }
@@ -141,8 +145,8 @@ public class NodeFetcher {
     private boolean checkIsRegistered(String token) throws Exception {
         logger.info("Check Is Registered");
         final String code = getCode().trim();
-        logger.info("Current Token：" + token);
-        logger.info("Current Code：" + code);
+        logger.info("Current Token: " + token);
+        logger.info("Current Code: " + code);
         HttpResponse<JsonNode> response = Unirest.post(properties.getHost() + "/user/account/check-is-registed")
                 .field("email", email)
                 .field("csrf_token", token)
