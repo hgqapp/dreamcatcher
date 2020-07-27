@@ -111,6 +111,7 @@ public class NodeFetcher {
         }
     }
 
+
     private void login() throws Exception {
         logger.info("Login by {}", email);
         HttpResponse<String> response = Unirest.post(properties.getHost() + "/user/account/login")
