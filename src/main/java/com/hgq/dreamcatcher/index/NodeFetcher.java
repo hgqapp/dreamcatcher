@@ -86,7 +86,7 @@ public class NodeFetcher {
         String subscribeLink = getSubscribeLink(typeKey);
         if (subscribeLink.isEmpty()) {
             logger.error("Subscribe Operation Failed");
-            throw new IllegalArgumentException("获取订约链接失败");
+            throw new IllegalArgumentException("The subscription link is empty and failed to obtain the subscription link");
         }
         if (!"QT5".equals(t)) {
             subscribeLink += ("?net_type=" + t);
@@ -113,12 +113,13 @@ public class NodeFetcher {
 
     private void login() throws Exception {
         logger.info("Login by {}", email);
-        Unirest.post(properties.getHost() + "/user/account/login")
+        HttpResponse<String> response = Unirest.post(properties.getHost() + "/user/account/login")
                 .field("email", email)
                 .field("password", properties.getPassword())
                 .field("agree_terms", 1)
                 .field("device_id", "")
                 .asString();
+        logger.info("Login Result {}", response.getBody());
     }
 
     private String getCSRFToken(String initText) throws Exception {
@@ -164,7 +165,7 @@ public class NodeFetcher {
 
     private void register() throws Exception {
         logger.info("Register by {}", email);
-        Unirest.post(properties.getHost() + "/user/account/regist")
+        HttpResponse<String> response = Unirest.post(properties.getHost() + "/user/account/regist")
                 .field("email", email)
                 .field("password", properties.getPassword())
                 .field("inviter_email", "")
@@ -172,6 +173,7 @@ public class NodeFetcher {
                 .field("device_id", "")
                 .field("regist_is_app", 0)
                 .asString();
+        logger.info("Register Result {}", response.getBody());
     }
 
     private String getSubscribeLink(String key) throws Exception {
@@ -203,7 +205,7 @@ public class NodeFetcher {
             }
         }
         if (result.isEmpty()) {
-            throw new IllegalArgumentException("没有可用的免费节点");
+            throw new IllegalArgumentException("No free nodes");
         }
         return result;
     }
