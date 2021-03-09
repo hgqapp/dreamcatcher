@@ -1,5 +1,6 @@
 package com.hgq.dreamcatcher.index;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +17,9 @@ import java.util.List;
 @RequestMapping
 public class IndexController {
 
+    @Autowired
+    NodeFetcher nodeFetcher;
+
     @RequestMapping("/index")
     public String index(){
         return "index";
@@ -24,8 +28,14 @@ public class IndexController {
     @ResponseBody
     @RequestMapping("/getNodeList")
     List<String> getNodeList(@RequestParam(defaultValue = "false") boolean refresh) throws Exception {
-        NodeFetcher me = NodeFetcher.me();
-        me.refresh(refresh);
-        return me.fetch();
+        return nodeFetcher.nodes(refresh);
     }
+
+    @ResponseBody
+    @RequestMapping("/subscribe")
+    String subscribe(@RequestParam(defaultValue = "VMESS") String type, @RequestParam(defaultValue = "false") boolean refresh) throws Exception {
+        return nodeFetcher.subscribe(type, refresh);
+    }
+
+
 }

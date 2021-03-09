@@ -1,24 +1,15 @@
 package com.hgq.dreamcatcher;
 
+import com.hgq.dreamcatcher.index.ApplicationProperties;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.context.TypeExcludeFilter;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootConfiguration
-@ComponentScan(
-        excludeFilters = {@ComponentScan.Filter(
-                type = FilterType.CUSTOM,
-                classes = {TypeExcludeFilter.class}
-        ), @ComponentScan.Filter(
-                type = FilterType.CUSTOM,
-                classes = {AutoConfigurationExcludeFilter.class}
-        )}
-)
-@EnableAutoConfiguration
+@EnableScheduling
+@EnableConfigurationProperties(ApplicationProperties.class)
+@SpringBootApplication(exclude = DataSourceAutoConfiguration.class)
 public class DreamcatcherApplication {
 
     public static void main(String[] args) {

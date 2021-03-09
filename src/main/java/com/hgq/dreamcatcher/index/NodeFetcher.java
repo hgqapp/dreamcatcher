@@ -1,17 +1,19 @@
 package com.hgq.dreamcatcher.index;
 
+import com.google.common.collect.ImmutableMap;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
 import javax.script.Invocable;
@@ -19,71 +21,106 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+@Component
 public class NodeFetcher {
 
     private static final Logger logger = LoggerFactory.getLogger(NodeFetcher.class);
-    private String email;
-    private String password = "qq123456";
-    private String host = "https://xbsj8789.site";
-
     private int r = 115;
     private int g = 115;
     private int b = 120;
     private int x = 70;
-    private volatile boolean refresh;
+    private ApplicationProperties properties;
+    private final static Map<String, String> TYPE = ImmutableMap.of(
+            "VMESS", "subscribe_link:",
+            "TROJAN", "subscribe_link:",
+            "SHADOWSOCKS", "subscribe_link:",
+            "ALL", "subscribe_link:",
+            "QT5", "subscribe_link_trojan_qt5:"
+    );
 
-    private static NodeFetcher instance = new NodeFetcher();
+    private String email;
+    private BaiDuApi baiDuApi;
+
+    public NodeFetcher(ApplicationProperties properties, BaiDuApi baiDuApi) {
+        this.properties = properties;
+        this.email = properties.getEmail();
+        this.baiDuApi = baiDuApi;
+    }
 
     static {
         Unirest.setDefaultHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36");
     }
 
-    private NodeFetcher() {
-        generateEmail();
-    }
-
-    public static NodeFetcher me() {
-        return instance;
-    }
-
-    public NodeFetcher refresh(boolean refresh) {
-        this.refresh = refresh;
-        return this;
-    }
-
-    private void generateEmail() {
+    @Scheduled(fixedDelay = 21590000L, initialDelay = 21590000L)
+    public synchronized void generateEmail() {
         this.email = "node" + System.currentTimeMillis() + "@qq.com";
-        logger.info("Email: {}", email);
+        logger.info("Generate Email: {}", email);
     }
 
-    public synchronized List<String> fetch() throws Exception {
+    public synchronized List<String> nodes(boolean refresh) throws Exception {
+        logger.info("Fetch Nodes");
         if (refresh) {
+            generateEmail();
+        }
+        fetch();
+        return getNodeList();
+    }
+
+    public synchronized String subscribe(String type, boolean refresh) throws Exception {
+        logger.info("Subscribe Operation");
+        if (refresh) {
+            generateEmail();
+        }
+        fetch();
+        String t = type.toUpperCase();
+        String typeKey = TYPE.get(t);
+        if (typeKey == null) {
+            throw new IllegalArgumentException("Not support type: " + type);
+        }
+        String subscribeLink = getSubscribeLink(typeKey);
+        if (subscribeLink.isEmpty()) {
+            logger.error("Subscribe Operation Failed");
+            throw new IllegalArgumentException("The subscription link is empty and failed to obtain the subscription link");
+        }
+        if (!"QT5".equals(t)) {
+            subscribeLink += ("?net_type=" + t);
+        }
+        logger.info("Subscribe Link: {}", subscribeLink);
+        String body = Unirest.get(subscribeLink).asString().getBody();
+        System.out.println(body);
+        return body;
+    }
+
+    private void fetch() throws Exception {
+        if (email == null) {
             generateEmail();
         }
         Unirest.setHttpClient(HttpClientBuilder.create().build());
         String token = parseCSRFToken();
-        final boolean registed = checkIsRegisted(token);
-        if (registed) {
+        final boolean registered = checkIsRegistered(token);
+        if (registered) {
             login();
         } else {
-            regist();
+            register();
         }
-        return getNodeList();
     }
 
+
     private void login() throws Exception {
-        Unirest.post(host + "/user/account/login")
+        logger.info("Login by {}", email);
+        HttpResponse<String> response = Unirest.post(properties.getHost() + "/user/account/login")
                 .field("email", email)
-                .field("password", password)
+                .field("password", properties.getPassword())
                 .field("agree_terms", 1)
                 .field("device_id", "")
                 .asString();
+        logger.info("Login Result {}", response.getBody());
     }
 
     private String getCSRFToken(String initText) throws Exception {
@@ -100,18 +137,19 @@ public class NodeFetcher {
     }
 
     private String parseCSRFToken() throws Exception {
-        final HttpResponse<String> loginBody = Unirest.get(host + "/portal/account/login").asString();
+        final HttpResponse<String> loginBody = Unirest.get(properties.getHost() + "/portal/account/login").asString();
         final Document document = Jsoup.parse(loginBody.getBody());
         final Elements fixedScript = document.getElementsByAttributeValue("data-id", "fixed_script");
         final String data = fixedScript.last().data();
         return getCSRFToken(data);
     }
 
-    private boolean checkIsRegisted(String token) throws Exception {
+    private boolean checkIsRegistered(String token) throws Exception {
+        logger.info("Check Is Registered");
         final String code = getCode().trim();
-        logger.info("请求Token：" + token);
-        logger.info("请求验证码：" + code);
-        HttpResponse<JsonNode> response = Unirest.post(host + "/user/account/check-is-registed")
+        logger.info("Current Token: " + token);
+        logger.info("Current Code: " + code);
+        HttpResponse<JsonNode> response = Unirest.post(properties.getHost() + "/user/account/check-is-registed")
                 .field("email", email)
                 .field("csrf_token", token)
                 .field("verify_code", code)
@@ -119,25 +157,37 @@ public class NodeFetcher {
         JSONObject object = response.getBody().getObject();
         int c = object.getInt("code");
         if (c != 0) {
-            throw new IllegalArgumentException("验证失败，请求结果：" + response.getBody());
+            logger.info("Verification code error [{}]", response.getBody());
+            return checkIsRegistered(token);
         }
         final JSONObject data = object.getJSONObject("data");
         return data.getBoolean("is_registed");
     }
 
-    private void regist() throws Exception {
-        Unirest.post(host + "/user/account/regist")
+    private void register() throws Exception {
+        logger.info("Register by {}", email);
+        HttpResponse<String> response = Unirest.post(properties.getHost() + "/user/account/regist")
                 .field("email", email)
-                .field("password", password)
+                .field("password", properties.getPassword())
                 .field("inviter_email", "")
                 .field("agree_terms", 1)
                 .field("device_id", "")
                 .field("regist_is_app", 0)
                 .asString();
+        logger.info("Register Result {}", response.getBody());
+    }
+
+    private String getSubscribeLink(String key) throws Exception {
+        HttpResponse<String> response = Unirest.get(properties.getHost() + "/portal/order/node").asString();
+        String body = response.getBody();
+        body = body.substring(body.indexOf(key));
+        String subscribeLink = body.substring(body.indexOf("'")+1);
+        subscribeLink = subscribeLink.substring(0, subscribeLink.indexOf("'"));
+        return subscribeLink;
     }
 
     private List<String> getNodeList() throws Exception {
-        HttpResponse<String> response = Unirest.get(host + "/portal/order/node").asString();
+        HttpResponse<String> response = Unirest.get(properties.getHost() + "/portal/order/node").asString();
         String body = response.getBody();
         body = body.substring(body.indexOf("node_data:") + 10);
         body = body.substring(0, body.indexOf("}}") + 2);
@@ -156,33 +206,22 @@ public class NodeFetcher {
             }
         }
         if (result.isEmpty()) {
-            throw new IllegalArgumentException("没有可用的免费节点");
+            throw new IllegalArgumentException("No free nodes");
         }
         return result;
     }
 
     private String getCode() throws Exception {
-        HttpResponse<InputStream> binary = Unirest.get(host + "/portal/account/get-verify-image").asBinary();
+        HttpResponse<InputStream> binary = Unirest.get(properties.getHost() + "/portal/account/get-verify-image").asBinary();
         InputStream input = binary.getBody();
         BufferedImage bufferedImage = removeBackground(input);
-        return doOCR(bufferedImage);
-    }
-
-    private String doOCR(BufferedImage image) throws Exception {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        ImageIO.write(image, "jpg", output);
-        String img = Base64.getMimeEncoder().encodeToString(output.toByteArray());
-        final HttpResponse<JsonNode> response = Unirest
-                .post("https://aip.baidubce.com/rest/2.0/ocr/v1/webimage")
-                .queryString("access_token", "24.a46966943a39b84c6da0139f2f28b66a.2592000.1598022414.282335-17867261")
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .field("image", img)
-                .field("language_type", "ENG")
-                .asJson();
-        JsonNode body = response.getBody();
-        logger.info("百度验证结果：{}", body);
-        JSONArray wordsResult = body.getObject().getJSONArray("words_result");
-        return wordsResult.getJSONObject(0).getString("words");
+        String code = baiDuApi.doOCR(bufferedImage);
+        if (code == null || code.trim().length() != 4) {
+            logger.error("Error Code : {}", code );
+            TimeUnit.SECONDS.sleep(1);
+            return getCode();
+        }
+        return code;
     }
 
     private BufferedImage removeBackground(InputStream input) throws Exception {
