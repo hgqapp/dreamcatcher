@@ -82,10 +82,9 @@ public class AutoStudy {
                 String chapter = href.substring(href.indexOf("chapter")+8);
                 Element last = children.last();
                 System.out.println("    课件名称: " + first.text() + " entityId:" + entityId + " chapterId: " + chapter+ " " + last.text());
-                int chapterSeconds = Integer.parseInt(last.text().split(" ")[1]) * 60;
+                int chapterSeconds = Integer.parseInt(last.text().split(" ")[1]) * 60 + 60;
                 doStudy(entityId, chapter, chapterSeconds);
             }
-            break;
         }
 
     }
@@ -173,8 +172,8 @@ public class AutoStudy {
 
     public static void main(String[] args) throws UnirestException {
         AutoStudy study = new AutoStudy(
-                "href=http://gz.learn.lawyerpass.com/; accessId=5c794df0-6a90-11ea-9d1b-45a6baa6494a; bad_id5c794df0-6a90-11ea-9d1b-45a6baa6494a=7e6aa051-7fb4-11eb-a6ba-831401e21f18; nice_id5c794df0-6a90-11ea-9d1b-45a6baa6494a=7e6aa052-7fb4-11eb-a6ba-831401e21f18; JSESSIONID=4CE16F184FE650DEFAADD833567D4FED; qimo_seosource_5c794df0-6a90-11ea-9d1b-45a6baa6494a=其他网站; qimo_seokeywords_5c794df0-6a90-11ea-9d1b-45a6baa6494a=未知; qimo_xstKeywords_5c794df0-6a90-11ea-9d1b-45a6baa6494a=; Hm_lvt_4a4d458c50b10ea42830d077410c9553=1615211662,1615211684,1615249465,1615249492; pageViewNum=39; Hm_lpvt_4a4d458c50b10ea42830d077410c9553=1615249857",
-                "a5c764ad-ddea-4231-9ee3-cb3a156982e2");
+                "JSESSIONID=14CDA51C3C1FB3E269C9F233C5D59CF3; qimo_seosource_5c794df0-6a90-11ea-9d1b-45a6baa6494a=其他网站; qimo_seokeywords_5c794df0-6a90-11ea-9d1b-45a6baa6494a=未知; qimo_xstKeywords_5c794df0-6a90-11ea-9d1b-45a6baa6494a=; href=http://gz.learn.lawyerpass.com/; accessId=5c794df0-6a90-11ea-9d1b-45a6baa6494a; Hm_lvt_4a4d458c50b10ea42830d077410c9553=1615252234; bad_id5c794df0-6a90-11ea-9d1b-45a6baa6494a=3ef41f81-8074-11eb-ba77-6b7179278297; nice_id5c794df0-6a90-11ea-9d1b-45a6baa6494a=3ef41f82-8074-11eb-ba77-6b7179278297; Hm_lpvt_4a4d458c50b10ea42830d077410c9553=1615253845; pageViewNum=86",
+                "917b69eb-a866-4900-b917-96764623b0a3");
         study.start();
     }
 }
