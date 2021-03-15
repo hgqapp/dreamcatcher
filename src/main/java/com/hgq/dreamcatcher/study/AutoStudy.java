@@ -37,57 +37,57 @@ public class AutoStudy {
     }
 
     public void start() throws UnirestException {
-        List<String> courseIds = getCourseIds();
+        for (int i = 1; i < 5; i++) {
+            List<String> courseIds = getCourseIds(i);
 
-        for (String courseId : courseIds) {
-            System.out.println();
-            System.out.println("===========================================================================================");
-            HttpResponse<String> response = Unirest.get("http://gz.learn.lawyerpass.com/service/rest/dm.MVC/tms.Course@mvc-detail/execute")
-                    .header("cookie", cookie)
-                    .queryString("entityId", courseId)
-                    .asString();
-            Document document = Jsoup.parse(response.getBody());
-            System.out.println("课程名称：" + document.getElementsByClass("about-title").text());
-            String startbtn = document.getElementsByClass("startbtn").text();
-            System.out.print("课程状态：");
-            if (startbtn.contains("选修并学习")) {
-                System.out.println("还未选修");
-            } else {
-                System.out.println("已选修");
-            }
-            System.out.println("课程信息：");
-            Elements list = document.getElementsByClass("list-group-item");
+            for (String courseId : courseIds) {
+                System.out.println();
+                System.out.println("===========================================================================================");
+                HttpResponse<String> response = Unirest.get("http://gz.learn.lawyerpass.com/service/rest/dm.MVC/tms.Course@mvc-detail/execute")
+                        .header("cookie", cookie)
+                        .queryString("entityId", courseId)
+                        .asString();
+                Document document = Jsoup.parse(response.getBody());
+                System.out.println("课程名称：" + document.getElementsByClass("about-title").text());
+                String startbtn = document.getElementsByClass("startbtn").text();
+                System.out.print("课程状态：");
+                if (startbtn.contains("选修并学习")) {
+                    System.out.println("还未选修");
+                } else {
+                    System.out.println("已选修");
+                }
+                System.out.println("课程信息：");
+                Elements list = document.getElementsByClass("list-group-item");
 
-            for (Element element : list) {
-                System.out.println("    " + element.text());;
-            }
-            Number status = 0;
-            try {
-                status = NumberFormat.getPercentInstance().parse(list.first().getElementsByTag("strong").text());
-            } catch (ParseException e) {
-            }
-            if (status.intValue() == 1) {
-                System.out.println("课程已经学习完成，将会自定忽略该课程！");
-                continue;
-            }
+                for (Element element : list) {
+                    System.out.println("    " + element.text());;
+                }
+                Number status = 0;
+                try {
+                    status = NumberFormat.getPercentInstance().parse(list.first().getElementsByTag("strong").text());
+                } catch (ParseException e) {
+                }
+                if (status.intValue() == 1) {
+                    System.out.println("课程已经学习完成，将会自动忽略该课程！");
+                    continue;
+                }
 
-            System.out.println("课件列表：");
-            Elements mediaBody = document.getElementsByClass("media-body");
-            for (Element mediaItem : mediaBody) {
-                Elements children = mediaItem.children();
-                Element first = children.first();
-                String href = first.attr("href");
+                System.out.println("课件列表：");
+                Elements mediaBody = document.getElementsByClass("media-body");
+                for (Element mediaItem : mediaBody) {
+                    Elements children = mediaItem.children();
+                    Element first = children.first();
+                    String href = first.attr("href");
 
-                String entityId = href.substring(href.indexOf("entityId") + 9, href.indexOf("&"));
-                String chapter = href.substring(href.indexOf("chapter")+8);
-                Element last = children.last();
-                System.out.println("    课件名称: " + first.text() + " entityId:" + entityId + " chapterId: " + chapter+ " " + last.text());
-                int chapterSeconds = Integer.parseInt(last.text().split(" ")[1]) * 60;
-                doStudy(entityId, chapter, chapterSeconds);
+                    String entityId = href.substring(href.indexOf("entityId") + 9, href.indexOf("&"));
+                    String chapter = href.substring(href.indexOf("chapter")+8);
+                    Element last = children.last();
+                    System.out.println("    课件名称: " + first.text() + " entityId:" + entityId + " chapterId: " + chapter+ " " + last.text());
+                    int chapterSeconds = Integer.parseInt(last.text().split(" ")[1]) * 60 + 60;
+                    doStudy(entityId, chapter, chapterSeconds);
+                }
             }
-            break;
         }
-
     }
 
     private void doStudy(String entityId, String chapterId, int chapterSeconds) throws UnirestException {
@@ -163,9 +163,11 @@ public class AutoStudy {
         }
     }
 
-    public List<String> getCourseIds() throws UnirestException {
+    public List<String> getCourseIds(int page) throws UnirestException {
         HttpResponse<String> response = Unirest.get("http://gz.learn.lawyerpass.com/service/rest/dm.MVC/tms.Course@mvc-select/execute?active=14c2b72ee1aa903d75e76db51157209b")
-                .header("cookie", cookie).asString();
+                .header("cookie", cookie)
+                .queryString("page", page)
+                .asString();
         Document document = Jsoup.parse(response.getBody());
         Elements elements = document.getElementsByAttributeValue("type", "checkbox");
         return elements.stream().map(v -> v.attr("data-id")).collect(Collectors.toList());
@@ -173,8 +175,8 @@ public class AutoStudy {
 
     public static void main(String[] args) throws UnirestException {
         AutoStudy study = new AutoStudy(
-                "href=http://gz.learn.lawyerpass.com/; accessId=5c794df0-6a90-11ea-9d1b-45a6baa6494a; bad_id5c794df0-6a90-11ea-9d1b-45a6baa6494a=7e6aa051-7fb4-11eb-a6ba-831401e21f18; nice_id5c794df0-6a90-11ea-9d1b-45a6baa6494a=7e6aa052-7fb4-11eb-a6ba-831401e21f18; JSESSIONID=4CE16F184FE650DEFAADD833567D4FED; qimo_seosource_5c794df0-6a90-11ea-9d1b-45a6baa6494a=其他网站; qimo_seokeywords_5c794df0-6a90-11ea-9d1b-45a6baa6494a=未知; qimo_xstKeywords_5c794df0-6a90-11ea-9d1b-45a6baa6494a=; Hm_lvt_4a4d458c50b10ea42830d077410c9553=1615211662,1615211684,1615249465,1615249492; pageViewNum=39; Hm_lpvt_4a4d458c50b10ea42830d077410c9553=1615249857",
-                "a5c764ad-ddea-4231-9ee3-cb3a156982e2");
+                "JSESSIONID=14CDA51C3C1FB3E269C9F233C5D59CF3; qimo_seosource_5c794df0-6a90-11ea-9d1b-45a6baa6494a=其他网站; qimo_seokeywords_5c794df0-6a90-11ea-9d1b-45a6baa6494a=未知; qimo_xstKeywords_5c794df0-6a90-11ea-9d1b-45a6baa6494a=; href=http://gz.learn.lawyerpass.com/; accessId=5c794df0-6a90-11ea-9d1b-45a6baa6494a; Hm_lvt_4a4d458c50b10ea42830d077410c9553=1615252234; bad_id5c794df0-6a90-11ea-9d1b-45a6baa6494a=3ef41f81-8074-11eb-ba77-6b7179278297; nice_id5c794df0-6a90-11ea-9d1b-45a6baa6494a=3ef41f82-8074-11eb-ba77-6b7179278297; Hm_lpvt_4a4d458c50b10ea42830d077410c9553=1615253845; pageViewNum=86",
+                "917b69eb-a866-4900-b917-96764623b0a3");
         study.start();
     }
 }
