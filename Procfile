@@ -1,1 +1,2 @@
-web: java -jar target/dreamcatcher.jar
+web java -Dserver.port=$PORT $JAVA_OPTS -jar target/demo-1.0.0-SNAPSHOT.jar
+
